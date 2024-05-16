@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100px;
+        }
+        input[type="submit"] {
+            padding: 5px 10px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Inventario</h1>
+    
+    <!-- Formulario para agregar un nuevo elemento al inventario -->
+    <form id="addItemForm">
+        <input type="text" id="itemName" placeholder="Nombre del artículo" required>
+        <input type="number" id="quantity" placeholder="Cantidad" required>
+        <input type="number" id="price" step="0.01" placeholder="Precio" required>
+        <input type="submit" value="Agregar">
+    </form>
+
+    <!-- Tabla para mostrar los datos del inventario -->
+    <table id="inventoryTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre del Artículo</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Aquí se llenará dinámicamente con los datos del inventario -->
+        </tbody>
+    </table>
+
+    <!-- Script para cargar y mostrar los datos del inventario -->
+    <script>
+        // Función para cargar y mostrar el inventario
+        function loadInventory() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    var inventory = JSON.parse(this.responseText);
+                    var tableHTML = '';
+                    inventory.forEach(function(item) {
+                        tableHTML += '<tr>';
+                        tableHTML += '<td>' + item.item_id + '</td>';
+                        tableHTML += '<td>' + item.item_name + '</td>';
+                        tableHTML += '<td>' + item.quantity + '</td>';
+                        tableHTML += '<td>' + item.price + '</td>';
+                        tableHTML += '<td><button onclick="updateItem(' + item.item_id + ',\'' + item.item_name + '\',' + item.quantity + ',' + item.price + ')">Actualizar</button>';
+                        tableHTML += '<button onclick="deleteItem(' + item.item_id + ')">Eliminar</button></td>';
+                        tableHTML += '</tr>';
+                    });
+                    document.querySelector('#inventoryTable tbody').innerHTML = tableHTML;
+                }
+            };
+            xhttp.open("GET", "get_inventory.php", true);
+            xhttp.send();
+        }
+        
+        // Llamar a la función para cargar el inventario cuando la página se cargue
+        window.onload = loadInventory;
+
+        // Función para manejar la actualización de un elemento del inventario
+        function updateItem(itemId, itemName, quantity, price) {
+            var newName = prompt("Ingrese el nuevo nombre del artículo", itemName);
+            if (newName !== null) {
+                var newQuantity = prompt("Ingrese la nueva cantidad", quantity);
+                if (newQuantity !== null) {
+                    var newPrice = prompt("Ingrese el nuevo precio", price);
+                    if (newPrice !== null) {
+                        var xhttp = new XMLHttpRequest();
+                        xhttp.onreadystatechange = function() {
+                            if (this.readyState == 4 && this.status == 200) {
+                                loadInventory(); // Recargar el inventario después de la actualización
+                            }
+                        };
+                        xhttp.open("POST", "update_inventory.php", true);
+                        xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                        xhttp.send("item_id=" + itemId + "&item_name=" + newName + "&quantity=" + newQuantity + "&price=" + newPrice);
+                    }
+                }
+            }
+        }
+
+        // Función para manejar la eliminación de un elemento del inventario
+        function deleteItem(itemId) {
+            if (confirm("¿Está seguro de que desea eliminar este artículo?")) {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        loadInventory(); // Recargar el inventario después de la eliminación
+                    }
+                };
+                xhttp.open("POST", "delete_inventory.php", true);
+                xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                xhttp.send("item_id=" + itemId);
+            }
+        }
+
+        // Manejar el envío del formulario para agregar un nuevo elemento al inventario
+        document.getElementById("addItemForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Evitar el envío del formulario por defecto
+            var itemName = document.getElementById("itemName").value;
+            var quantity = document.getElementById("quantity").value;
+            var price = document.getElementById("price").value;
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    loadInventory(); // Recargar el inventario después de agregar un nuevo elemento
+                    document.getElementById("addItemForm").reset(); // Limpiar el formulario
+                }
+            };
+            xhttp.open("POST", "add_inventory.php", true);
+            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xhttp.send("item_name=" + itemName + "&quantity=" + quantity + "&price=" + price);
+        });
+    </script>
+</body>
+</html>
